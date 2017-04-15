@@ -252,7 +252,34 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
           legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        depth = self.depth
+        numAgents = gameState.getNumAgents()
+        # pdb.set_trace()
+        self.MaxValue(gameState,depth,numAgents)
+        return self.action
+       
+
+    def MaxValue(self, gameState,depth, numAgents):
+      if gameState.isWin == True or gameState.isLose == True or depth == 0:
+        return self.evaluationFunction(gameState)
+      if len(gameState.getLegalActions(0)) == 0:
+        return self.evaluationFunction(gameState)
+      value = max([(self.ChanceValue(gameState.generateSuccessor(0, action), 1,depth, numAgents),action) for action in gameState.getLegalActions(0)])
+      if depth == self.depth:
+          self.action = value[1]
+      return value[0]
+
+    def ChanceValue(self, gameState, agentIndex, depth, numAgents):
+      if gameState.isWin == True or gameState.isLose == True or depth == 0:
+        return self.evaluationFunction(gameState)
+      if len(gameState.getLegalActions(agentIndex)) == 0:
+        return self.evaluationFunction(gameState)
+      if agentIndex == numAgents - 1:
+        valueList = [self.MaxValue(gameState.generateSuccessor(agentIndex, action), depth - 1, numAgents) for action in gameState.getLegalActions(agentIndex)]
+        return sum(valueList)/len(valueList) 
+      else:
+        valueList = [self.ChanceValue(gameState.generateSuccessor(agentIndex, action), agentIndex+1,depth, numAgents) for action in gameState.getLegalActions(agentIndex)]
+        return sum(valueList)/len(valueList) 
 
 def betterEvaluationFunction(currentGameState):
     """
@@ -262,7 +289,7 @@ def betterEvaluationFunction(currentGameState):
       DESCRIPTION: <write something here so we know what you did>
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    
 
 # Abbreviation
 better = betterEvaluationFunction
