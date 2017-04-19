@@ -12,6 +12,7 @@ import sys
 import random
 import time
 from optparse import OptionParser
+import pdb
 
 class GameState:
     """
@@ -92,7 +93,7 @@ class GameRules:
         """ 
           You can initialize some variables here, but please do not modify the input parameters.
         """
-        {}
+        self.fingerprint = []
         
     def deadTest(self, board):
         """
@@ -137,10 +138,53 @@ class TicTacToeAgent():
         """ 
           You can initialize some variables here, but please do not modify the input parameters.
         """
-        {}
-
+        self.winAction = []
     def getAction(self, gameState, gameRules):
-        util.raiseNotDefined()
+        # ASCII_OF_A = 65
+        # if len(gameRules.fingerprint) ==0:
+            # gameRules.fingerprint.append(gameState.generateSuccessor("A4"))
+            # return "A4"
+        # preGameState = gameRules.fingerprint.pop()
+        # preOpponentLocation = [chr(i + 65) for i, x in enumerate(gameState.boards) for j, y in enumerate(x) if y != preGameState.boards[i][j]][0]4
+        self.MaxValue(gameState,gameRules,0)
+        action = self.winAction.pop()
+        return action
+
+    def MaxValue(self,gameState,gameRules,depth):
+            if gameRules.isGameOver(gameState.boards) or depth == 4:
+                return self.evaluationFunc(gameState,gameRules)
+            actions = gameState.getLegalActions(gameRules)
+            maxV = -1
+            for action in actions:
+                successorState = gameState.generateSuccessor(action)
+                value = max(maxV, self.MinValue(successorState, gameRules,depth+1))
+                if value>0:
+                    if depth == 0:
+                        self.winAction.append(action)
+                        return value
+            if depth == 0:
+                        self.winAction.append(action)
+            return value
+
+    def MinValue(self, gameState, gameRules, depth):
+            if gameRules.isGameOver(gameState.boards) or depth == 4:
+                return self.evaluationFunc(gameState,gameRules)
+            actions = gameState.getLegalActions(gameRules)
+            minV = 999
+            for action in actions:
+                successorState = gameState.generateSuccessor(action)
+                value = min(minV, self.MaxValue(successorState, gameRules,depth + 1))
+                if value < 0:
+                        return value
+            return value
+
+    def evaluationFunc(self, gameState, gameRules):
+        if gameRules.isGameOver(gameState.boards):
+                return -999
+        return sum([len(gameState.generateSuccessor(action).getLegalActions(gameRules)) for action in gameState.getLegalActions(gameRules)])
+        
+      
+        
 
 
 class randomAgent():
@@ -196,7 +240,7 @@ class Game():
         if AIforHuman:
             self.HumanAgent = randomAgent()
         else:
-            self.HumanAgent = keyboardAgent()
+            self.HumanAgent = TicTacToeAgent()
 
     def run(self):
         """
