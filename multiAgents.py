@@ -258,28 +258,29 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         self.MaxValue(gameState,depth,numAgents)
         return self.action
        
-
     def MaxValue(self, gameState,depth, numAgents):
       if gameState.isWin == True or gameState.isLose == True or depth == 0:
-        return self.evaluationFunction(gameState)
+        return self.evaluationFunction(gameState) 
       if len(gameState.getLegalActions(0)) == 0:
         return self.evaluationFunction(gameState)
-      value = max([(self.ChanceValue(gameState.generateSuccessor(0, action), 1,depth, numAgents),action) for action in gameState.getLegalActions(0)])
+      value1 = [(self.ChanceValue(gameState.generateSuccessor(0, action), 1,depth, numAgents),action) for action in gameState.getLegalActions(0)]
+      value = max(value1)
       if depth == self.depth:
           self.action = value[1]
       return value[0]
 
     def ChanceValue(self, gameState, agentIndex, depth, numAgents):
       if gameState.isWin == True or gameState.isLose == True or depth == 0:
-        return self.evaluationFunction(gameState)
+        return self.evaluationFunction(gameState) 
       if len(gameState.getLegalActions(agentIndex)) == 0:
         return self.evaluationFunction(gameState)
       if agentIndex == numAgents - 1:
-        valueList = [self.MaxValue(gameState.generateSuccessor(agentIndex, action), depth - 1, numAgents) for action in gameState.getLegalActions(agentIndex)]
-        return sum(valueList)/len(valueList) 
+        valueList1 = [(self.MaxValue(gameState.generateSuccessor(agentIndex, action),depth - 1, numAgents),action) for action in gameState.getLegalActions(agentIndex)]
+        valueList = [x[0]for x in valueList1]
+        return sum(valueList) / len(valueList)
       else:
         valueList = [self.ChanceValue(gameState.generateSuccessor(agentIndex, action), agentIndex+1,depth, numAgents) for action in gameState.getLegalActions(agentIndex)]
-        return sum(valueList)/len(valueList) 
+        return sum(valueList)/len(valueList)
 
 def betterEvaluationFunction(currentGameState):
     """
@@ -289,6 +290,27 @@ def betterEvaluationFunction(currentGameState):
       DESCRIPTION: <write something here so we know what you did>
     """
     "*** YOUR CODE HERE ***"
+    pacPos = currentGameState.getPacmanPosition()
+    preFood = currentGameState.getFood().asList(True)
+    preNumFood = currentGameState.getNumFood()
+    walls = currentGameState.getWalls()
+    GhostStates = currentGameState.getGhostStates()
+    numCapsules = len(currentGameState.getCapsules())
+    ScaredTimes = [ghostState.scaredTimer for ghostState in GhostStates]
+    if currentGameState.isWin():
+      return 99999+10 * currentGameState.getScore()
+    if currentGameState.isLose():
+          return -99999 + 10 * currentGameState.getScore()
+    foodPara2 = sum([manhattanDistance(x, pacPos)for x in preFood])
+    cloestFood = min([(manhattanDistance(x, pacPos),x) for x in preFood])
+    foodPara = cloestFood[0]
+    ghostPara = min([manhattanDistance(pacPos, x.getPosition())for x in GhostStates])
+    stillPara = manhattanDistance(pacPos,(1,1))
+    if min(ScaredTimes) >= ghostPara:
+      return (10 / foodPara + 1000 / preNumFood + 100 / foodPara2 + 100 * currentGameState.getScore() + 5000 / ghostPara + 2000 / (numCapsules + 2))
+
+    return (10 / foodPara + 1000 / preNumFood + 100 / foodPara2 +100 * currentGameState.getScore() + 0.5*ghostPara + 2000 / (numCapsules+2))
+   
     
 
 # Abbreviation
