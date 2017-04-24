@@ -231,12 +231,6 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
           minV = min(value,minV)
         return value
         
-      
-
-    
-
-        
-
 
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
@@ -287,29 +281,28 @@ def betterEvaluationFunction(currentGameState):
       Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
       evaluation function (question 5).
 
-      DESCRIPTION: <write something here so we know what you did>
+      DESCRIPTION: 
+      <In this evaluation function, reciprocal of distance between pacman and nearest food, reciprocal of number of remaining food, reciprocal  of distance from pacman to all remaining food, score of game as living penalty, distance between nearest ghost, reciprocal of number of capsules are taken into account with corresponding weights. When capsule is eaten and minimum ghost time is larger than the distance between pacman and nearest ghost, distance from nearest ghost will be replaced by reciprocal of distance with a high weight. >
+
     """
     "*** YOUR CODE HERE ***"
     pacPos = currentGameState.getPacmanPosition()
     preFood = currentGameState.getFood().asList(True)
-    preNumFood = currentGameState.getNumFood()
-    walls = currentGameState.getWalls()
+    NumFood = currentGameState.getNumFood()
     GhostStates = currentGameState.getGhostStates()
     numCapsules = len(currentGameState.getCapsules())
-    ScaredTimes = [ghostState.scaredTimer for ghostState in GhostStates]
     if currentGameState.isWin():
       return 99999+10 * currentGameState.getScore()
     if currentGameState.isLose():
           return -99999 + 10 * currentGameState.getScore()
     foodPara2 = sum([manhattanDistance(x, pacPos)for x in preFood])
-    cloestFood = min([(manhattanDistance(x, pacPos),x) for x in preFood])
-    foodPara = cloestFood[0]
+    foodPara = min([(manhattanDistance(x, pacPos), x) for x in preFood])[0]
     ghostPara = min([manhattanDistance(pacPos, x.getPosition())for x in GhostStates])
-    stillPara = manhattanDistance(pacPos,(1,1))
+    ScaredTimes = [ghostState.scaredTimer for ghostState in GhostStates]
     if min(ScaredTimes) >= ghostPara:
-      return (10 / foodPara + 1000 / preNumFood + 100 / foodPara2 + 100 * currentGameState.getScore() + 5000 / ghostPara + 2000 / (numCapsules + 2))
+      return (10 / foodPara + 1000 / NumFood + 100 / foodPara2 + 100 * currentGameState.getScore() + 5000 / ghostPara + 2000 / (numCapsules + 2))
 
-    return (10 / foodPara + 1000 / preNumFood + 100 / foodPara2 +100 * currentGameState.getScore() + 0.5*ghostPara + 2000 / (numCapsules+2))
+    return (10 / foodPara + 1000 / NumFood + 100 / foodPara2 +100 * currentGameState.getScore() + 0.5*ghostPara + 2000 / (numCapsules+2))
    
     
 

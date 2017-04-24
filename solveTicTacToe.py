@@ -93,7 +93,6 @@ class GameRules:
         """ 
           You can initialize some variables here, but please do not modify the input parameters.
         """
-        self.fingerprint = []
         
     def deadTest(self, board):
         """
@@ -118,6 +117,18 @@ class GameRules:
           Check whether the game is over  
         """
         return self.deadTest(boards[0]) and self.deadTest(boards[1]) and self.deadTest(boards[2])
+    """
+     new added functions
+    """
+    def isPartOver(self, boards):
+        return self.deadTest(boards[0]) or self.deadTest(boards[1]) or self.deadTest(boards[2])
+    def isEmpty(self,boards):
+        for row in boards:
+            for element in row:
+                if element !=False:
+                    return False
+        else:
+            return True
 
 class TicTacToeAgent():
     """
@@ -138,52 +149,233 @@ class TicTacToeAgent():
         """ 
           You can initialize some variables here, but please do not modify the input parameters.
         """
-        self.winAction = []
+        self.winAction = "stop"
     def getAction(self, gameState, gameRules):
-        # ASCII_OF_A = 65
-        # if len(gameRules.fingerprint) ==0:
-            # gameRules.fingerprint.append(gameState.generateSuccessor("A4"))
-            # return "A4"
-        # preGameState = gameRules.fingerprint.pop()
-        # preOpponentLocation = [chr(i + 65) for i, x in enumerate(gameState.boards) for j, y in enumerate(x) if y != preGameState.boards[i][j]][0]4
-        self.MaxValue(gameState,gameRules,0)
-        action = self.winAction.pop()
-        return action
+        """
+        first step strategy
+        """
+        if gameRules.isEmpty(gameState.boards) and gameState.boards[0][4]==False:
+            gameRules.fingerprint = []
+            gameRules.fingerprint.append(gameState.generateSuccessor("A4"))
+            gameRules.preAction = "A4"
+            return "A4"
 
-    def MaxValue(self,gameState,gameRules,depth):
-            if gameRules.isGameOver(gameState.boards) or depth == 4:
-                return self.evaluationFunc(gameState,gameRules)
-            actions = gameState.getLegalActions(gameRules)
-            maxV = -1
-            for action in actions:
-                successorState = gameState.generateSuccessor(action)
-                value = max(maxV, self.MinValue(successorState, gameRules,depth+1))
-                if value>0:
-                    if depth == 0:
-                        self.winAction.append(action)
-                        return value
-            if depth == 0:
-                        self.winAction.append(action)
-            return value
+        """
+        get the previous step of my opponent by compare the new getted gamestate with my last gamestate
+        """
+        preGameState = gameRules.fingerprint.pop()
+        preOpponentLocation= [chr(i + 65)+str(j) for i, x in enumerate(gameState.boards) for j, y in enumerate(x) if y != preGameState.boards[i][j]][0]
+        
+        """
+        get the gamestate of which board is not died
+        """
+        states = [] 
+        for x in range(3):
+                if gameRules.deadTest(gameState.boards[x]) != True:
+                     states.append(chr(x + 65) + "4")
 
-    def MinValue(self, gameState, gameRules, depth):
-            if gameRules.isGameOver(gameState.boards) or depth == 4:
-                return self.evaluationFunc(gameState,gameRules)
-            actions = gameState.getLegalActions(gameRules)
-            minV = 999
+
+        actions = gameState.getLegalActions(gameRules)
+        """
+        pruning!!! since the number of actions for each move is quite big, only when number of remaining legal action <= 12 will we use minimax agent 
+        to search all legal actions within all three boards. Otherwise, we will try to kill boards as soon as possible without losing the game.
+        """
+        if len(actions) <=12:
+            self.MaxValue(gameState,gameRules,None,0)
+        
+        if len(states) == 3:
             for action in actions:
-                successorState = gameState.generateSuccessor(action)
-                value = min(minV, self.MaxValue(successorState, gameRules,depth + 1))
-                if value < 0:
-                        return value
-            return value
+                           if self.MinValue(gameState.generateSuccessor(action), gameRules, states[0], 7) == -99:
+                               self.winAction = action
+                               break
+                           elif self.MinValue(gameState.generateSuccessor(action), gameRules, states[1], 7) == -99:
+                               self.winAction = action
+                               break
+                           elif self.MinValue(gameState.generateSuccessor(action), gameRules, states[2], 7) == -99:
+                               self.winAction = action
+                               break
+            else:
+                if preOpponentLocation[0] != gameRules.preAction[0]:
+                    for x in range(9):
+                        if gameState.boards[2][x] != False:
+                            break
+                    else:
+                        gameRules.fingerprint.append(gameState.generateSuccessor("C4"))
+                        gameRules.preAction = "C4"
+                        return "C4"
+                if preOpponentLocation[0] == "C":
+                    for x in range(9):
+                        if gameState.boards[1][x] != False:
+                            break
+                    else:
+                        gameRules.fingerprint.append(gameState.generateSuccessor("B4"))
+                        gameRules.preAction = "B4"
+                        return "B4"
+                tmp = []
+                for i,x in enumerate(gameState.boards[ord(preOpponentLocation[0])-65]):
+                    if x == True:
+                        tmp.append(i)
+                if len(tmp)>=2:
+                    for j in range(9):
+                        if j % 3 != tmp[0] % 3 and j % 3 != tmp[1] % 3:
+                            if j//3 !=tmp[0]//3 and j//3 !=tmp[1]//3:
+                                self.winAction = preOpponentLocation[0]+str(j)
+                                break
+                else:
+                        self.MaxValue(gameState, gameRules, preOpponentLocation, 0)                            
+
+        elif len(states) == 1:
+                    self.MaxValue(gameState, gameRules, states[0], 0)
+        elif len(states)==2:
+             for x in range(0,3):
+                 for y in range(0,9):
+                     if gameState.boards[x][y]!=False:
+                         break
+                 else:
+                    self.winAction = chr(x + 65) + "4"
+                    break
+             else:
+                    value1 = self.MaxValue(gameState, gameRules, states[0], 0)
+                    # print("value1 is ->",value1)    
+                    value2 = self.MaxValue(gameState, gameRules, states[1], 0)
+                    # print("value2 is ->",value2)
+                    if value1==-198 and value2==198:
+                        # print("P and N")
+                        for action in actions:
+                           if self.MinValue(gameState.generateSuccessor(action), gameRules, states[1], 7)==-198:
+                               self.winAction = action
+                               break
+                        else:
+                            # print("P and N no kill")
+                            tmp = []
+                            for i, x in enumerate(gameState.boards[ord(states[1][0]) - 65]):
+                                if x== True:
+                                    tmp.append(i)
+                            if len(tmp)>=2:
+                                for j in range(9):
+                                    if j % 3 != tmp[0] % 3 and j % 3 != tmp[1] % 3:
+                                        if j//3 !=tmp[0]//3 and j//3 !=tmp[1]//3:
+                                            self.winAction =preOpponentLocation[0]+str(j)
+                                            break
+                    if value1 ==198 and value2 == -198:
+                        # print("P and N")
+                        for action in actions:
+                           if self.MinValue(gameState.generateSuccessor(action), gameRules, states[0], 7) == -198:
+                               self.winAction = action
+                               break
+                        else:
+                            # print("P and N no kill")
+                            tmp = []
+                            for i, x in enumerate(gameState.boards[ord(states[0][0]) - 65]):
+                                if x == True:
+                                    tmp.append(i)
+                            if len(tmp)>=2:
+                                for j in range(9):
+                                    if j % 3 != tmp[0] % 3 and j % 3 != tmp[1] % 3:
+                                        if j//3 !=tmp[0]//3 and j//3 !=tmp[1]//3:
+                                            self.winAction = preOpponentLocation[0]+str(j)
+                                            break
+                    if value1 == -198 and value2 == -198:
+                        # print("N and N")
+                        for action in actions:
+                           if self.MinValue(gameState.generateSuccessor(action), gameRules, states[0], 7) == -198:
+                               self.winAction = action
+                               break
+                           elif self.MinValue(gameState.generateSuccessor(action), gameRules, states[1], 7) == -198:
+                               self.winAction = action
+                               break
+                        else:
+                            # print("N and N no kill")
+                            tmp = []
+                            for i, x in enumerate(gameState.boards[ord(states[1][0]) - 65]):
+                                if x== True:
+                                    tmp.append(i)
+                            if len(tmp)>=2:
+                                for j in range(9):
+                                    if j % 3 != tmp[0] % 3 and j % 3 != tmp[1] % 3:
+                                        if j//3 !=tmp[0]//3 and j//3 !=tmp[1]//3:
+                                            self.winAction =preOpponentLocation[0]+str(j)
+                                            break
+                                            
+                    if value1==198 and value2 ==198:
+                        # print("P and P")                    
+                        self.MaxValue(gameState, gameRules, preOpponentLocation, 0)
+        gameRules.fingerprint.append(gameState.generateSuccessor(self.winAction))
+        gameRules.preAction = self.winAction
+        gameRules.preAction = self.winAction
+        return self.winAction
+    def MaxValue(self, gameState, gameRules, preOpponentLocation,depth):
+           
+            actions = gameState.getLegalActions(gameRules)
+            if len(actions)==0:
+                return self.evaluationFunc(gameState, gameRules)
+            if preOpponentLocation !=None:
+                if gameRules.deadTest(gameState.boards[ord(preOpponentLocation[0]) - 65]) or depth == 8:
+                    return self.evaluationFunc(gameState,gameRules)
+                value = -float("inf")
+                for i,action in enumerate(actions):
+                    if action[0] == preOpponentLocation[0]:
+                        successorState = gameState.generateSuccessor(action)
+                        value1 = self.MinValue(successorState, gameRules,preOpponentLocation,depth+1)
+                        if value1> value:
+                            value =  value1
+                            if depth ==0:
+                                self.winAction = action
+                return value
+            if preOpponentLocation ==None:
+                if gameRules.isGameOver(gameState.boards) or depth == 8:
+                    return self.evaluationFunc(gameState, gameRules)
+                value = -float("inf")
+                for i, action in enumerate(actions):
+                    successorState = gameState.generateSuccessor(action)
+                    value1 = self.MinValue(successorState, gameRules, preOpponentLocation, depth + 1)
+                    if value1 > value:
+                        value = value1
+                        if depth == 0:
+                            self.winAction = action
+                return value
+
+    def MinValue(self, gameState, gameRules, preOpponentLocation,depth):
+            
+            actions = gameState.getLegalActions(gameRules)
+            if len(actions)==0:
+                return -self.evaluationFunc(gameState, gameRules)
+            if preOpponentLocation !=None:
+                if gameRules.deadTest(gameState.boards[ord(preOpponentLocation[0]) - 65]) or depth == 8:
+                    return -self.evaluationFunc(gameState, gameRules)
+                value = float("inf")
+                for i,action in enumerate(actions):
+                    if action[0] == preOpponentLocation[0]:
+                        successorState = gameState.generateSuccessor(action)
+                        value1 = self.MaxValue(successorState, gameRules,preOpponentLocation,depth + 1)
+                        if value1< value:
+                            if depth == 0:
+                                self.winAction = action
+                            value = value1
+                return value
+            if preOpponentLocation == None:
+                if gameRules.isGameOver(gameState.boards) or depth == 8:
+                    return -self.evaluationFunc(gameState, gameRules)
+                value = float("inf")
+                for i,action in enumerate(actions):
+                    successorState = gameState.generateSuccessor(action)
+                    value1 = self.MaxValue(successorState, gameRules,preOpponentLocation,depth + 1)
+                    if value1< value:
+                        if depth == 0:
+                                self.winAction = action
+                        value = value1
+                return value
+
+
 
     def evaluationFunc(self, gameState, gameRules):
         if gameRules.isGameOver(gameState.boards):
-                return -999
-        return sum([len(gameState.generateSuccessor(action).getLegalActions(gameRules)) for action in gameState.getLegalActions(gameRules)])
-        
-      
+                return 999
+        value = 0
+        for i in range(3):
+            if gameRules.deadTest(gameState.boards[i])==True:
+                value += 99
+        return value
         
 
 
@@ -227,7 +419,7 @@ class Game():
         """
         self.numOfGames  = numOfGames
         self.muteOutput  = muteOutput
-        self.maxTimeOut  = 30 
+        self.maxTimeOut  = 10000
 
         self.AIforHuman  = AIforHuman
         self.gameRules   = GameRules()
@@ -240,7 +432,7 @@ class Game():
         if AIforHuman:
             self.HumanAgent = randomAgent()
         else:
-            self.HumanAgent = TicTacToeAgent()
+            self.HumanAgent = TicTacToeAgent1()
 
     def run(self):
         """
@@ -276,6 +468,7 @@ class Game():
 
                 agentIndex  = (agentIndex + 1) % 2
             if agentIndex == 0:
+                pdb.set_trace()
                 print("****player 2 wins game %d!!****" % (i+1))
             else:
                 numOfWins += 1
